@@ -15,13 +15,14 @@ use URI::Encode qw(uri_encode);
 use LWP::UserAgent;
 use Date::Parse;
 use YAML qw(LoadFile DumpFile);
+with 'MooseX::Log::Log4perl';
 
 use App::Toodledo::TokenCache;
 use App::Toodledo::InfoCache;
 use App::Toodledo::Account;
 use App::Toodledo::Task;
 use App::Toodledo::TaskCache;
-use App::Toodledo::Util qw(home debug arg_encode preferred_date_format);
+use App::Toodledo::Util qw(home arg_encode preferred_date_format);
 
 my $HOST          =  'api.toodledo.com';
 my $ROOT_URL      =  "http://$HOST/2/";
@@ -41,11 +42,17 @@ has info_cache    => ( is => 'rw', isa => 'App::Toodledo::InfoCache' );
 has account_info  => ( is => 'rw', isa => 'App::Toodledo::Account' );
 has task_cache    => ( is => 'rw', isa => 'App::Toodledo::TaskCache' );
 
+sub BUILD
+{
+    #TODO: make it smart
+  Log::Log4perl->easy_init();
+}
+
 
 method get_session_token ( Str :$app_token?, Str :$user_id? ) {
   my $app_id   = $self->app_id;
-  $user_id   ||= $self->user_id or croak "No user_id";
-  $app_token ||= $self->app_token or croak "No app_token";
+  $user_id   ||= $self->user_id or $self->log->logdie("No user_id");
+  $app_token ||= $self->app_token or $self->log->logdie("No app_token");
   $self->user_id( $user_id );
   $self->app_token( $app_token );
 
@@ -62,7 +69,7 @@ method _session_token_from_cache ( Str $user_id!, Str $app_id!, Str $app_token! 
   if ( my $token_info = $token_cache->valid_token( user_id => $user_id,
 						   app_id  => $app_id ) )
   {
-    debug( "Have valid saved token\n" );
+    $self->log->debug( "Have valid saved token\n" );
     $session_token = $token_info->token;
   }
   else
@@ -79,10 +86,10 @@ method _session_token_from_cache ( Str $user_id!, Str $app_id!, Str $app_token! 
 
 method get_session_token_from_rc ( Str $user_id? ) {
   $user_id ||= $self->user_id || $self->default_user_id
-    or croak "No user_id and no default user_id";
+    or $self->log->logdie( "No user_id and no default user_id");
   my $app_id = $self->app_id;
   my $app_token = $self->app_token_of( $app_id )
-    or croak "Cannot get app_token for $app_id";
+    or $self->log->logdie("Cannot get app_token for $app_id");
   $self->get_session_token( app_token => $app_token, user_id => $user_id );
 }
 
@@ -94,11 +101,11 @@ method _make_session_key ( Str $password!, Str $app_token!, Str $session_token! 
 
 method connect ( Str $password! ) {
   my $session_token = $self->session_token
-    or croak "Need to get session token first";
+    or $self->log->logdie("Need to get session token first");
   my $key = $self->_make_session_key( $password, $self->app_token,
 				      $session_token );
   $self->session_key( $key );
-  my $account_ref = $self->get( 'account' ) or croak "No account info";
+  my $account_ref = $self->get( 'account' ) or $self->log->logdie( "No account info");
   $self->account_info( $account_ref );
   $key;
 }
@@ -115,8 +122,8 @@ method login_from_rc ( Str $user_id? ) {
   my @args = $user_id ? $user_id : ();
   $self->get_session_token_from_rc( @args );
   my $password = $self->password_of( $self->user_id )
-    or croak "Cannot get password";
-  debug( "Loaded password from info cache\n" );
+    or $self->log->logdie("Cannot get password");
+  $self->log->debug( "Loaded password from info cache\n" );
   $self->connect( $password );
 }
 
@@ -157,7 +164,7 @@ method _get_info_cache () {
   my $file = _info_cache_name();
 
   $self->info_cache and return $self->info_cache;
-  debug( "Fetching info cache\n" );
+  $self->log->debug( "Fetching info cache\n" );
   my $cache = App::Toodledo::InfoCache->new_from_file( $file );
   $self->info_cache( $cache );
   $cache;
@@ -175,7 +182,7 @@ method new_session_token ( Str $app_token! ) {
   my $argref = { appid  => $self->app_id,
 		 userid => $self->user_id,
 		 sig    => $sig };
-  debug( "Creating new session token\n" );
+  $self->log->debug( "Creating new session token\n" );
   my $ref = $self->call_func( account => token => $argref );
   $ref->{token};
 }
@@ -208,7 +215,8 @@ method get ( Str $type!, %param ) {
     {
       if ( $param{start} + $counter->{num} != $counter->{total} )
       {
-	debug( "Start = $param{start}, Total = $counter->{total}, "
+	$self->log->debug( "Start = $param{start}, Total = $counter->{total}, "
+
 		. " Num = $counter->{num}\n" );
 	$param{start} += $counter->{num};
 	redo FETCH;
@@ -232,16 +240,16 @@ method call_func ( Str $func!, Str $subfunc!, HashRef $argref? ) {
   my $user_agent = $self->user_agent;
   $argref ||= {};
   $argref->{key} = $self->session_key if $self->session_key;
-  debug( "Calling function $func/$subfunc\n" );
+  $self->log->debug( "Calling function $func/$subfunc\n" );
   my %encoded_args = map { $_,  arg_encode( $argref->{$_} ) }
                          keys %$argref;
   my $res = $user_agent->post( "$ROOT_URL$func/$subfunc.php",
 			       \%encoded_args );
-  $res->code != 200 and croak "Unable to contact Toodledo\n";
-  my $ref = decode_json( $res->content ) or croak "Content invalid\n";
+  $res->code != 200 and $self->log->logdie( "Unable to contact Toodledo\n");
+  my $ref = decode_json( $res->content ) or $self->log->logdie( "Content invalid\n");
 
-  croak $ref->{errorCode} == 500 ? "Toodledo offline\n"
-                                 : "Error: " . $ref->{errorDesc}
+  $self->log->logdie( $ref->{errorCode} == 500 ? "Toodledo offline\n"
+                                 : "Error: " . $ref->{errorDesc})
     if ref $ref eq 'HASH' && $ref->{errorCode};
   $ref;
 }
@@ -257,7 +265,7 @@ method select ( ArrayRef[Object] $o_ref, Str $expr ) {
   }
 
   $expr =~ s/\b$_\b/\$self->$_/g for $prototype->attribute_list;
-  debug( "Searching in " . @$o_ref . "objects for '$expr'\n" );
+  $self->log->debug( "Searching in " . @$o_ref . "objects for '$expr'\n" );
   my $selector = sub { my $self = shift; eval $expr };
   $self->grep_objects( $o_ref, $selector );
 }
@@ -303,10 +311,10 @@ method task_cache_valid () {
              . " Fetched: " . localtime( $fetched );
   if ( $ai->lastedit_task >= $fetched || $ai->lastdelete_task >= $fetched )
   {
-    debug( "Task cache invalid ($logstr)\n" );
+    $self->log->debug( "Task cache invalid ($logstr)\n" );
     return;
   }
-  debug( "Task cache valid ($logstr)\n" );
+  $self->log->debug( "Task cache valid ($logstr)\n" );
   return 1;
 }
 

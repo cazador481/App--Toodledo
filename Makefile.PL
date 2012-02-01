@@ -50,6 +50,7 @@ WriteMakefile(
         'Date::Parse' => 0,
         'File::HomeDir' => 0,
         'YAML' => 0,
+        'MooseX::Log::Log4perl'=>0,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'App-Toodledo-*' },
