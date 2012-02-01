@@ -8,9 +8,10 @@ use Carp;
 use Moose;
 use MooseX::Method::Signatures;
 use App::Toodledo::TaskInternal;
-use App::Toodledo::Util qw(toodledo_decode debug toodledo_encode);
+use App::Toodledo::Util qw(toodledo_decode toodledo_encode);
 
 use Moose::Util::TypeConstraints;
+with 'MooseX::Log::Log4perl';
 BEGIN { class_type 'App::Toodledo' };
 
 extends 'App::Toodledo::InternalWrapper';
@@ -72,12 +73,12 @@ method set_enum ( Str $type!, Item $new_value? ) {
   if ( $new_value )
   {
     defined( my $index = $ENUM_INDEX{$type}{$new_value} )
-      or croak "\u$type $new_value not valid";
+      or $self->log->logdie("$type $new_value not valid");
     push @args, $index;
   }
   my $index = $self->object->$type( @args );
   my $string = $ENUM_STRING{$type}{$index}
-    or croak "Toodledo returned invalid $type index $index";
+    or $self->log->logdie("Toodledo returned invalid $type index $index");
   $string;
 }
 
@@ -111,11 +112,11 @@ method set_name( App::Toodledo $todo!, Str $type!, Item $new_string? ) {
   if ( $can_use_cache )
   {
     @objs = @{ $cache{$type} };
-    debug( "Using cached ${type}s\n" );
+    $self->log->debug( "Using cached ${type}s\n" );
   }
   else
   {
-    debug( "Fetching ${type}s\n" );
+    $self->log->debug( "Fetching ${type}s\n" );
     @objs = $todo->get( $type.'s' );
     $cache{$type} = \@objs;
     $can_use_cache = 0;
@@ -130,7 +131,7 @@ method set_name( App::Toodledo $todo!, Str $type!, Item $new_string? ) {
     else
     {
       my ($obj) = grep { $_->name eq $new_string } @objs
-	or croak "Could not find a $type with name '$new_string'";
+	or $self->log->logdie("Could not find a $type with name '$new_string'");
       $id = $obj->id;
     }
     $self->object->$type( $id );
@@ -139,7 +140,7 @@ method set_name( App::Toodledo $todo!, Str $type!, Item $new_string? ) {
 
   my $id = $self->$type or return '';
   my ($obj) = grep { $_->id == $id } @objs
-    or croak "Could not find existing $type $id in global list!";
+    or $self->log->logdie( "Could not find existing $type $id in global list!");
   $obj->name;
 }
 
@@ -207,7 +208,7 @@ method edit ( App::Toodledo $todo!, App::Toodledo::Task @more ) {
 method delete ( App::Toodledo $todo! ) {
   my $id = $self->id;
   my $deleted_ref = $todo->call_func( tasks => delete => { tasks => [$id] } );
-  $deleted_ref->[0]{id} == $id or croak "Did not get ID back from delete";
+  $deleted_ref->[0]{id} == $id or $self->log->logdie("Did not get ID back from delete");
 }
 
 

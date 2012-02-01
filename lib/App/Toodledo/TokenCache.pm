@@ -3,7 +3,7 @@ package App::Toodledo::TokenCache;
 use Moose;
 use MooseX::Method::Signatures;
 use YAML qw(LoadFile DumpFile);
-use App::Toodledo::Util qw(debug);
+with 'MooseX::Log::Log4perl';
 
 has filename => ( is => 'rw', isa => 'Str' );
 
@@ -14,7 +14,7 @@ method new_from_file ( $class: Str $file! ) {
   if ( -r $file && -f $file )
   {
     my $token_info_ref = LoadFile( $file );
-    debug "Loaded token cache from $file\n";
+    $class->log->debug( "Loaded token cache from $file");
     _prune_deadwood( $token_info_ref );
     return $class->new( filename => $file, token_info_ref => $token_info_ref );
   }
@@ -37,7 +37,7 @@ sub _prune_deadwood
 
 
 method save_to_file ( Str $filename! ) {
-  debug "Saved token cache to $filename\n";
+  $self->log->debug("Saved token cache to $filename");
   DumpFile( $filename, $self->token_info_ref );
 }
 

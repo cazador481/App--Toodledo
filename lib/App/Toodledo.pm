@@ -4,7 +4,6 @@ use warnings;
 
 our $VERSION = '2.10';
 
-use Carp;
 use File::Spec;
 use Digest::MD5 'md5_hex';
 use Moose;
@@ -15,6 +14,7 @@ use URI::Encode qw(uri_encode);
 use LWP::UserAgent;
 use Date::Parse;
 use YAML qw(LoadFile DumpFile);
+use Log::Log4perl::Level;
 with 'MooseX::Log::Log4perl';
 
 use App::Toodledo::TokenCache;
@@ -42,10 +42,22 @@ has info_cache    => ( is => 'rw', isa => 'App::Toodledo::InfoCache' );
 has account_info  => ( is => 'rw', isa => 'App::Toodledo::Account' );
 has task_cache    => ( is => 'rw', isa => 'App::Toodledo::TaskCache' );
 
+#initializes log4perl to log to screen if it hasn't been initialized
+#Will default to $ERROR, if $ENV{APP_TOODLEDO_DEBUG} then will set to
+#logger to $debug
 sub BUILD
 {
-    #TODO: make it smart
-  Log::Log4perl->easy_init();
+  if (!Log::Log4perl->initialized())#TODO: make it smart
+  {
+    if (defined $ENV{APP_TOODLEDO_DEBUG})
+    {
+        Log::Log4perl->easy_init($DEBUG);
+    }
+    else
+    {
+      Log::Log4perl->easy_init($ERROR);
+    }
+  }
 }
 
 
@@ -657,8 +669,12 @@ using this cache and you believe it to be invalid, delete this file.
 
 =head1 ENVIRONMENT
 
-Setting the environment variable C<APP_TOODLEDO_DEBUG> will cause
-debugging-type information to be output to STDERR.
+App::Toodledo uses log4perl for error logging and debug messages.  By default they will be outputted to STDOUT, and STDERR.
+A log4perl can be specified in the users application, if one is not set App::Toodledo will use Log::Log4perl::easy_init($ERROR);
+Setting the environment variable C<APP_TOODLEDO_DEBUG> will cause debugging-type information to be output to log4perl logger.
+If a logger hasn't been set App::Toodledo will use Log::Log4perl::easy_init($DEBUG);
+
+
 
 =head1 AUTHOR
 
@@ -709,10 +725,6 @@ for querying an account.
 
 Handling of the *date/*time attributes needs to be coordinated
 so it is useful.
-
-=item *
-
-Convert logging to use Log4Perl.
 
 =back
 

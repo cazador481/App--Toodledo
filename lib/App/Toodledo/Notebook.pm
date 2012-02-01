@@ -8,6 +8,7 @@ use Carp;
 use Moose;
 use MooseX::Method::Signatures;
 use App::Toodledo::NotebookInternal;
+with 'MooseX::Log::Log4perl';
 
 use Moose::Util::TypeConstraints;
 BEGIN { class_type 'App::Toodledo' };
@@ -33,7 +34,7 @@ method delete ( App::Toodledo $todo! ) {
   my $id = $self->id;
   my $deleted_ref = $todo->call_func( notebook => delete =>
 				      { notebooks => [$id] } );
-  $deleted_ref->[0]{id} == $id or croak "Did not get ID back from delete";
+  $deleted_ref->[0]{id} == $id or $self->log->logdie("Did not get ID back from delete");
 }
 
 

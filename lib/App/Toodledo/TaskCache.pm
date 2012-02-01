@@ -3,8 +3,9 @@ package App::Toodledo::TaskCache;
 use Moose;
 use MooseX::Method::Signatures;
 use MooseX::ClassAttribute;
-use App::Toodledo::Util qw(home debug);
+use App::Toodledo::Util qw(home );
 use YAML qw(LoadFile DumpFile);
+with 'MooseX::Log::Log4perl';
 
 our $VERSION = '1.00';
 
@@ -22,14 +23,14 @@ sub _cache_filename
 
 method exists () {
   -s _cache_filename() or return;
-  debug( "Task cache exists\n" );
+  $self->log->debug( "Task cache exists\n" );
 }
 
 
 method fetch () {
-  debug( "Loading from task cache\n" );
+  $self->log->debug( "Loading from task cache\n" );
   %$self = LoadFile( _cache_filename() );
-  debug( "Fetched " . @{ $self->tasks } . " tasks from "
+  $self->log->debug( "Fetched " . @{ $self->tasks } . " tasks from "
           . _cache_filename() . "\n" );
 }
 
@@ -37,7 +38,7 @@ method fetch () {
 method store ( App::Toodledo::Task @tasks ) {
   $self->last_updated( time );
   $self->tasks( [ @tasks ] );
-  debug( "Storing " . @tasks ." tasks in " . _cache_filename() . "\n" );
+  $self->log->debug( "Storing " . @tasks ." tasks in " . _cache_filename() . "\n" );
   DumpFile( _cache_filename(), %$self );
 }
 

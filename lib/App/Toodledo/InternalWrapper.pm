@@ -4,6 +4,7 @@ use Carp;
 use Package::Stash;
 use Moose;
 use MooseX::Method::Signatures;
+with 'MooseX::Log::Log4perl';
 
 our $VERSION = '1.01';
 
@@ -43,7 +44,7 @@ method delete ( App::Toodledo $todo! ) {
   my $id = $self->id;
   (my $type = lc ref $self) =~ s/.*://;
   my $deleted_ref = $todo->call_func( $type => delete => { id => $id } );
-  $deleted_ref->[0]{id} == $id or croak "Did not get ID back from delete";
+  $deleted_ref->[0]{id} == $id or $self->log->logdie("Did not get ID back from delete");
 }
 
 
