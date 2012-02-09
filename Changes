@@ -59,3 +59,10 @@ Revision history for App-Toodledo
 2.10	Dec 29, 2011
 	'star' and 'startdate' both matched 'startdate' in select()
 	until \b anchors added.
+
+2.11	Feb 7, 2011
+	Integrated Log4Perl changes from Eddie Ash.
+
+2.12    Feb 8, 2011
+	Require latest version of YAML, which Ingy has fixed the Mo::xxx
+	warnings in now.

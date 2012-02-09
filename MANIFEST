@@ -44,4 +44,5 @@ t/pod.t
 examples/toodledo_no_folder
 examples/toodledo_add
 examples/title_case_tags
-META.yml                                 Module meta-data (added by MakeMaker)
+META.yml                                 Module YAML meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)

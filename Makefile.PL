@@ -24,6 +24,8 @@ else
   warn "No live tests\n";
 }
 
+# Non-numeric version numbers in Extutils::MakeMaker :-(
+no warnings 'numeric';
 WriteMakefile(
     NAME                => 'App::Toodledo',
     AUTHOR              => 'Peter J. Scott <cpan@psdt.com>',
@@ -49,8 +51,8 @@ WriteMakefile(
         'Digest::MD5' => 0,
         'Date::Parse' => 0,
         'File::HomeDir' => 0,
-        'YAML' => 0,
-        'MooseX::Log::Log4perl'=>0,
+        'YAML' => 0.79,
+        'MooseX::Log::Log4perl' => 0,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'App-Toodledo-*' },

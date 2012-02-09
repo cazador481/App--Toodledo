@@ -14,7 +14,7 @@ method new_from_file ( $class: Str $file! ) {
   if ( -r $file && -f $file )
   {
     my $token_info_ref = LoadFile( $file );
-    $class->log->debug( "Loaded token cache from $file");
+    $class->new->log->debug( "Loaded token cache from $file");
     _prune_deadwood( $token_info_ref );
     return $class->new( filename => $file, token_info_ref => $token_info_ref );
   }

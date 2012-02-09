@@ -2,7 +2,7 @@ package App::Toodledo;
 use strict;
 use warnings;
 
-our $VERSION = '2.10';
+our $VERSION = '2.12';
 
 use File::Spec;
 use Digest::MD5 'md5_hex';
@@ -257,8 +257,10 @@ method call_func ( Str $func!, Str $subfunc!, HashRef $argref? ) {
                          keys %$argref;
   my $res = $user_agent->post( "$ROOT_URL$func/$subfunc.php",
 			       \%encoded_args );
-  $res->code != 200 and $self->log->logdie( "Unable to contact Toodledo\n");
-  my $ref = decode_json( $res->content ) or $self->log->logdie( "Content invalid\n");
+  $res->code != 200
+    and $self->log->logdie( "Unable to contact Toodledo\n");
+  my $ref = decode_json( $res->content )
+    or $self->log->logdie( "Content invalid\n");
 
   $self->log->logdie( $ref->{errorCode} == 500 ? "Toodledo offline\n"
                                  : "Error: " . $ref->{errorDesc})
@@ -669,16 +671,22 @@ using this cache and you believe it to be invalid, delete this file.
 
 =head1 ENVIRONMENT
 
-App::Toodledo uses log4perl for error logging and debug messages.  By default they will be outputted to STDOUT, and STDERR.
-A log4perl can be specified in the users application, if one is not set App::Toodledo will use Log::Log4perl::easy_init($ERROR);
-Setting the environment variable C<APP_TOODLEDO_DEBUG> will cause debugging-type information to be output to log4perl logger.
-If a logger hasn't been set App::Toodledo will use Log::Log4perl::easy_init($DEBUG);
-
+App::Toodledo uses log4perl for error logging and debug messages.  By
+default they will be outputted to STDOUT, and STDERR.  A log4perl can
+be specified in the users application, if one is not set App::Toodledo
+will use Log::Log4perl::easy_init($ERROR); Setting the environment
+variable C<APP_TOODLEDO_DEBUG> will cause debugging-type information
+to be output to log4perl logger.  If a logger hasn't been set
+App::Toodledo will use Log::Log4perl::easy_init($DEBUG);
 
 
 =head1 AUTHOR
 
 Peter J. Scott, C<< <cpan at psdt.com> >>
+
+=head1 CONTRIBUTORS
+
+Thanks to Edward Ash for the Log4Perl integration!
 
 =head1 BUGS
 
@@ -829,7 +837,7 @@ Getting Things Done, David Allen, ISBN 978-0142000281.
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2009 - 2011 Peter J. Scott, all rights reserved.
+Copyright 2009 - 2012 Peter J. Scott, all rights reserved.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
